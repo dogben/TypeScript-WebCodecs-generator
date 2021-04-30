@@ -14,6 +14,7 @@ import { collectLegacyNamespaceTypes } from "./legacy-namespace";
 export const enum Flavor {
   Window,
   Worker,
+  Standalone,
 }
 
 // Note:
@@ -157,7 +158,9 @@ function isEventHandler(p: Browser.Property) {
 export function emitWebIdl(
   webidl: Browser.WebIdl,
   flavor: Flavor,
-  iterator: boolean
+  iterator: boolean,
+  known: Set<string>,
+  title?: string
 ): string {
   // Global print target
   const printer = createTextWriter("\n");
@@ -286,6 +289,21 @@ export function emitWebIdl(
   );
 
   return iterator ? emitES6DomIterators() : emit();
+
+  function getUnknownElements<K extends string, T>(
+    a: Record<K, Record<string, T>> | undefined,
+    k: K
+  ): T[] {
+    if (!a) return [];
+    const rec = a[k];
+    const rv: T[] = [];
+    for (const name in rec) {
+      if (!known.has(name)) {
+        rv.push(rec[name]);
+      }
+    }
+    return rv;
+  }
 
   function getTagNameToElementNameMap() {
     const htmlResult: Record<string, string> = {};
@@ -796,7 +814,7 @@ export function emitWebIdl(
   }
 
   function emitCallBackFunctions() {
-    getElements(webidl["callback-functions"], "callback-function")
+    getUnknownElements(webidl["callback-functions"], "callback-function")
       .sort(compareName)
       .forEach(emitCallBackFunction);
   }
@@ -809,7 +827,7 @@ export function emitWebIdl(
   }
 
   function emitEnums() {
-    getElements(webidl.enums, "enum")
+    getUnknownElements(webidl.enums, "enum")
       .sort(compareName)
       .filter((i) => !i["legacy-namespace"])
       .forEach(emitEnum);
@@ -1220,7 +1238,7 @@ export function emitWebIdl(
 
   /// Emit all the named constructors at root level
   function emitNamedConstructors() {
-    getElements(webidl.interfaces, "interface")
+    getUnknownElements(webidl.interfaces, "interface")
       .sort(compareName)
       .forEach(emitNamedConstructor);
   }
@@ -1500,6 +1518,7 @@ export function emitWebIdl(
 
   function emitNonCallbackInterfaces() {
     for (const i of allNonCallbackInterfaces.sort(compareName)) {
+      if (known.has(i.name)) continue;
       if (i["legacy-namespace"]) {
         continue;
       }
@@ -1516,6 +1535,7 @@ export function emitWebIdl(
   }
 
   function emitNamespace(namespace: Browser.Interface) {
+    if (known.has(namespace.name)) return;
     if (namespace.comment) {
       printer.printLine(`/** ${namespace.comment} */`);
     }
@@ -1585,7 +1605,7 @@ export function emitWebIdl(
   }
 
   function emitDictionaries() {
-    getElements(webidl.dictionaries, "dictionary")
+    getUnknownElements(webidl.dictionaries, "dictionary")
       .sort(compareName)
       .filter((i) => !i["legacy-namespace"])
       .forEach(emitDictionary);
@@ -1604,7 +1624,7 @@ export function emitWebIdl(
   function emitTypeDefs() {
     if (webidl.typedefs) {
       webidl.typedefs.typedef
-        .filter((i) => !i["legacy-namespace"])
+        .filter((i) => !i["legacy-namespace"] && !known.has(i["new-type"]))
         .forEach(emitTypeDef);
     }
   }
@@ -1616,26 +1636,36 @@ export function emitWebIdl(
   function emit() {
     printer.reset();
     printer.printLine("/////////////////////////////");
-    if (flavor === Flavor.Worker) {
-      printer.printLine("/// Worker APIs");
-    } else {
-      printer.printLine("/// DOM APIs");
+    switch (flavor) {
+      case Flavor.Window:
+        printer.printLine("/// DOM APIs");
+        break;
+      case Flavor.Worker:
+        printer.printLine("/// Worker APIs");
+        break;
+      case Flavor.Standalone:
+        printer.printLine(`/// ${title} APIs`);
+        break;
+      default:
+        throw new Error(`Unknown flavor ${flavor}`);
     }
     printer.printLine("/////////////////////////////");
     printer.printLine("");
 
     emitDictionaries();
-    getElements(webidl["callback-interfaces"], "interface")
+    getUnknownElements(webidl["callback-interfaces"], "interface")
       .sort(compareName)
       .forEach((i) => emitCallBackInterface(i));
     emitNonCallbackInterfaces();
 
-    printer.printLine(
-      "declare type EventListenerOrEventListenerObject = EventListener | EventListenerObject;"
-    );
-    printer.printLine("");
+    if (flavor !== Flavor.Standalone) {
+      printer.printLine(
+        "declare type EventListenerOrEventListenerObject = EventListener | EventListenerObject;"
+      );
+      printer.printLine("");
 
-    collectLegacyNamespaceTypes(webidl).forEach(emitNamespace);
+      collectLegacyNamespaceTypes(webidl).forEach(emitNamespace);
+    }
 
     emitCallBackFunctions();
 

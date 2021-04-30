@@ -1,0 +1,15 @@
+{
+    "interfaces": {
+        "interface": {
+            "VideoFrame": {
+                "name": "VideoFrame",
+                "constructor": {
+                    "override-signatures": [
+                        "new(source: HTMLOrSVGImageElement | HTMLVideoElement | HTMLCanvasElement | ImageBitmap | OffscreenCanvas | VideoFrame, init?: VideoFrameInit): VideoFrame",
+                        "new(format: VideoPixelFormat, planes: PlaneInit[], init: VideoFramePlaneInit): VideoFrame"
+                    ]
+                }
+            }
+        }
+    }
+}

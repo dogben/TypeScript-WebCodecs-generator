@@ -1,0 +1,10 @@
+{
+    "typedefs": {
+        "typedef": [
+            {
+                "new-type": "VideoPixelFormat",
+                "type": "DOMString"
+            }
+        ]
+    }
+}

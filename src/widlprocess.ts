@@ -2,8 +2,18 @@ import * as webidl2 from "webidl2";
 import * as Browser from "./types";
 import { getEmptyWebIDL } from "./helpers";
 
+export interface ConvertResult {
+  browser: Browser.WebIdl;
+  partialInterfaces: Browser.Interface[];
+  partialMixins: Browser.Interface[];
+  partialDictionaries: Browser.Dictionary[];
+  includes: webidl2.IncludesType[];
+  namespaceNested: Record<string, Browser.Interface>;
+}
+
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function convert(text: string, commentMap: Record<string, string>) {
+export function convert(text: string,
+                        commentMap: Record<string, string>): ConvertResult {
   const rootTypes = webidl2.parse(text);
   const partialInterfaces: Browser.Interface[] = [];
   const partialMixins: Browser.Interface[] = [];

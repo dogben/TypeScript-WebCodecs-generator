@@ -38,6 +38,12 @@ interface Algorithm {
     name: string;
 }
 
+interface AudioBufferOptions {
+    length: number;
+    numberOfChannels?: number;
+    sampleRate: number;
+}
+
 interface BlobPropertyBag {
     endings?: EndingType;
     type?: string;
@@ -669,6 +675,22 @@ interface AnimationFrameProvider {
     cancelAnimationFrame(handle: number): void;
     requestAnimationFrame(callback: FrameRequestCallback): number;
 }
+
+/** A short audio asset residing in memory, created from an audio file using the AudioContext.decodeAudioData() method, or from raw data using AudioContext.createBuffer(). Once put into an AudioBuffer, the audio can then be played by being passed into an AudioBufferSourceNode. */
+interface AudioBuffer {
+    readonly duration: number;
+    readonly length: number;
+    readonly numberOfChannels: number;
+    readonly sampleRate: number;
+    copyFromChannel(destination: Float32Array, channelNumber: number, bufferOffset?: number): void;
+    copyToChannel(source: Float32Array, channelNumber: number, bufferOffset?: number): void;
+    getChannelData(channel: number): Float32Array;
+}
+
+declare var AudioBuffer: {
+    prototype: AudioBuffer;
+    new(options: AudioBufferOptions): AudioBuffer;
+};
 
 /** A file-like object of immutable, raw data. Blobs represent data that isn't necessarily in a JavaScript-native format. The File interface is based on Blob, inheriting blob functionality and expanding it to support files on the user's system. */
 interface Blob {

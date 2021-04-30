@@ -103,7 +103,7 @@ dictionary OfflineAudioCompletionEventInit : EventInit {
   required AudioBuffer renderedBuffer;
 };
 
-[Exposed=Window,
+[Exposed=(Window,DedicatedWorker),
  Constructor (AudioBufferOptions options)]
 interface AudioBuffer {
   readonly attribute float sampleRate;
